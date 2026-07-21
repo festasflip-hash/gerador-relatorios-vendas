@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gerador de Relatórios Comerciais</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+
+<div class="topbar">
+  <h1>📊 Gerador de Relatórios Individuais</h1>
+  <span id="topbarSub">Modo: Acompanhamento Parcial</span>
+</div>
+<div class="tabs">
+  <button class="tab-btn active" id="tabParcial" onclick="switchTab('parcial')">📅 Acompanhamento Parcial</button>
+  <button class="tab-btn" id="tabFechamento" onclick="switchTab('fechamento')">🏁 Fechamento do Mês</button>
+  <button class="tab-btn" id="tabDashboard" onclick="switchTab('dashboard')">📈 Dashboard</button>
+</div>
+
+<div class="container">
+  <div class="controls" id="controlsBar">
+    <div class="controls-left">
+      <h2 id="ctrlTitle">Representantes — Parcial</h2>
+      <p>Campos em verde são calculados automaticamente.</p>
+    </div>
+    <div class="form-gi">
+      <label id="lblPeriodo">Período Parcial</label>
+      <input id="periodoInput" type="text" value="01/06 a 12/06/2026" style="width:160px">
+    </div>
+    <div class="form-gi">
+      <label>Mês de Referência</label>
+      <input id="mesInput" type="text" value="Junho 2026" style="width:120px">
+    </div>
+    <button class="btn btn-tpl" onclick="abrirTemplateManager()">📁 Templates</button>
+    <button class="btn btn-csv" onclick="importCSV()">📂 CSV</button>
+    <button class="btn btn-add" onclick="addRow()">+ Linha</button>
+    <button class="btn btn-clear" onclick="clearAll()">🗑 Limpar</button>
+    <button class="btn btn-gerar" onclick="gerarTodos()">⚡ Gerar Relatórios</button>
+    <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleCSV(event)">
+    <input type="file" id="jsonFile" accept=".json" style="display:none" onchange="handleJSON(event)">
+  </div>
+
+  <div class="legend" id="legendBar">
+    <span><strong>Classificação:</strong></span>
+    <div class="leg-item"><div class="leg-dot" style="background:#27ae60"></div>Alta (90–100%)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#e67e22"></div>Média (50–89%)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#e74c3c"></div>Baixa (0–49%)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#27ae60;opacity:.4"></div>Campo calculado automaticamente</div>
+    <span id="legendaExtra" style="margin-left:auto;font-size:11px;color:#aaa"></span>
+    <button class="btn btn-csv" onclick="downloadModelo()" style="padding:6px 12px;font-size:11px;">⬇ CSV Modelo</button>
+  </div>
+
+  <!-- TABELA PARCIAL -->
+  <div class="table-wrap" id="tableWrapParcial">
+    <table class="entry-table">
+      <thead>
+        <tr>
+          <th rowspan="2" style="width:24px">#</th>
+          <th rowspan="2">Nome</th><th rowspan="2">Rank.</th>
+          <th rowspan="2">Perf.P%</th><th rowspan="2">Perf.M%</th>
+          <th colspan="4" class="group">NOVAS VENDAS</th>
+          <th colspan="3" class="group">TICKET MÉDIO</th>
+          <th colspan="4" class="group">OBJETIVO DE VENDAS</th>
+          <th colspan="4" class="group">POSITIVAÇÃO</th>
+          <th colspan="4" class="group">MIX DE VENDAS</th>
+          <th rowspan="2" style="width:60px">Ações</th>
+        </tr>
+        <tr>
+          <th>MetaP</th><th>MetaM</th><th>Real.</th><th title="Calculado">Res.🟢</th>
+          <th>Meta R$</th><th>Real. R$</th><th title="Calculado">%🟢</th>
+          <th>MetaP R$</th><th>MetaM R$</th><th>Real. R$</th><th title="Calculado">Res.🟢</th>
+          <th>MetaP</th><th>MetaM</th><th>Real.</th><th title="Calculado">Res.🟢</th>
+          <th>MetaP</th><th>MetaM</th><th>Real.</th><th title="Calculado">Res.🟢</th>
+        </tr>
+      </thead>
+      <tbody id="tableBodyParcial"></tbody>
+    </table>
+  </div>
+
+  <!-- TABELA FECHAMENTO -->
+  <div class="table-wrap hidden" id="tableWrapFechamento">
+    <table class="entry-table">
+      <thead>
+        <tr>
+          <th rowspan="2" style="width:24px">#</th>
+          <th rowspan="2">Nome</th><th rowspan="2">Rank.</th><th rowspan="2">Perf.M%</th>
+          <th colspan="3" class="group">NOVAS VENDAS</th>
+          <th colspan="3" class="group">TICKET MÉDIO</th>
+          <th colspan="3" class="group">OBJETIVO DE VENDAS</th>
+          <th colspan="3" class="group">POSITIVAÇÃO</th>
+          <th colspan="3" class="group">MIX DE VENDAS</th>
+          <th rowspan="2" style="width:60px">Ações</th>
+        </tr>
+        <tr>
+          <th>Meta</th><th>Real.</th><th title="Calculado">Res.🟢</th>
+          <th>Meta R$</th><th>Real. R$</th><th title="Calculado">Res.🟢</th>
+          <th>Meta R$</th><th>Real. R$</th><th title="Calculado">Res.🟢</th>
+          <th>Meta</th><th>Real.</th><th title="Calculado">Res.🟢</th>
+          <th>Meta</th><th>Real.</th><th title="Calculado">Res.🟢</th>
+        </tr>
+      </thead>
+      <tbody id="tableBodyFechamento"></tbody>
+    </table>
+  </div>
+
+  <!-- DASHBOARD -->
+  <div class="hidden" id="dashWrap"></div>
+
+  <!-- RESULTADOS -->
+  <div id="resultsSection" style="display:none">
+    <div class="results-header">
+      <h2 id="resultsTitle">Relatórios Gerados</h2>
+      <div class="results-actions">
+        <button class="btn-zip-all" id="btnZipAll" onclick="baixarZip()">📦 Baixar ZIP</button>
+        <button class="btn-print-all" id="btnPrintAll" onclick="imprimirTodos()">🖨️ Imprimir Todos</button>
+      </div>
+    </div>
+    <div class="rep-list" id="repList"></div>
+  </div>
+</div>
+
+<!-- MODAL VISUALIZAÇÃO -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+  <div class="modal-inner wide">
+    <div class="modal-topbar">
+      <span id="modalTitle">Relatório</span>
+      <div style="display:flex;gap:8px">
+        <button class="modal-close" onclick="imprimirAtual()">🖨️ PDF</button>
+        <button class="modal-close" onclick="fecharModal()">✕</button>
+      </div>
+    </div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<!-- MODAL EDIÇÃO -->
+<div class="modal-overlay" id="editOverlay" onclick="closeEditModal(event)">
+  <div class="modal-inner narrow">
+    <div class="modal-topbar">
+      <span id="editTitle">Editar Representante</span>
+      <button class="modal-close" onclick="fecharEditModal()">✕</button>
+    </div>
+    <div class="modal-body" id="editBody"></div>
+  </div>
+</div>
+
+<!-- MODAL TEMPLATE -->
+<div class="modal-overlay" id="tplOverlay" onclick="closeTplModal(event)">
+  <div class="modal-inner narrow">
+    <div class="modal-topbar">
+      <span>📁 Gerenciador de Templates</span>
+      <button class="modal-close" onclick="fecharTplModal()">✕</button>
+    </div>
+    <div class="modal-body" id="tplBody"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
