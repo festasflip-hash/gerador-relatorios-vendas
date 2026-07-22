@@ -34,11 +34,11 @@
       <label>Mês de Referência</label>
       <input id="mesInput" type="text" value="Junho 2026" style="width:120px">
     </div>
-    <button class="btn btn-tpl" onclick="abrirTemplateManager()">📁 Templates</button>
-    <button class="btn btn-csv" onclick="importCSV()">📂 CSV</button>
-    <button class="btn btn-add" onclick="addRow()">+ Linha</button>
-    <button class="btn btn-clear" onclick="clearAll()">🗑 Limpar</button>
-    <button class="btn btn-gerar" onclick="gerarTodos()">⚡ Gerar Relatórios</button>
+    <button id="btn-tpl" class="btn btn-tpl">📁 Templates</button>
+    <button id="btn-csv" class="btn btn-csv">📂 CSV</button>
+    <button id="btn-add" class="btn btn-add">+ Linha</button>
+    <button id="btn-clear" class="btn btn-clear">🗑 Limpar</button>
+    <button id="btn-gerar" class="btn btn-gerar">⚡ Gerar Relatórios</button>
     <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleCSV(event)">
     <input type="file" id="jsonFile" accept=".json" style="display:none" onchange="handleJSON(event)">
   </div>
@@ -50,7 +50,7 @@
     <div class="leg-item"><div class="leg-dot" style="background:#e74c3c"></div>Baixa (0–49%)</div>
     <div class="leg-item"><div class="leg-dot" style="background:#27ae60;opacity:.4"></div>Campo calculado automaticamente</div>
     <span id="legendaExtra" style="margin-left:auto;font-size:11px;color:#aaa"></span>
-    <button class="btn btn-csv" onclick="downloadModelo()" style="padding:6px 12px;font-size:11px;">⬇ CSV Modelo</button>
+    <button id="btn-dnw-csv" class="btn btn-csv" style="padding:6px 12px;font-size:11px;">⬇ CSV Modelo</button>
   </div>
 
   <!-- TABELA PARCIAL -->
@@ -158,13 +158,14 @@
   </div>
 </div>
 
-<script src="app.js"></script>
-<script src="/scripts/csv.js"></script>
-<script src="/scripts/helpers.js"></script>
-<script src="/scripts/modal.js"></script>
-<script src="/scripts/templates.js"></script>
-<script src="/scripts/relatorioParcial.js"></script>
-<script src="/scripts/relatorioFechamento.js"></script>
-<script src="/scripts/dashboard.js"></script>
+<script type="module" src="app.js"></script>
+<script type="module" src="/scripts/csv.js"></script>
+<script type="module" src="/scripts/helpers.js"></script>
+<script type="module" src="/scripts/modal.js"></script>
+<script type="module" src="/scripts/templates.js"></script>
+<script type="module" src="/scripts/relatorioParcial.js"></script>
+<script type="module" src="/scripts/relatorioFechamento.js"></script>
+<script type="module" src="/scripts/dashboard.js"></script>
+<script type="module" src="/scripts/printCSS.js"></script>
 </body>
 </html>

@@ -1,3 +1,6 @@
+import { estado } from "./state";
+import { converterParaFloat } from "./helpers";
+
 function downloadModelo(){
   let h,ex;
   if(modo==='parcial'){
@@ -12,23 +15,52 @@ function downloadModelo(){
   a.download=`modelo_${modo}.csv`;
   a.click();
 }
+document.getElementById("btn-dnw-csv").addEventListener("click",downloadModelo);
+
 function importCSV(){
     document.getElementById('csvFile').click();
 }
 
 function handleCSV(e){
-  const file=e.target.files[0];if(!file)return;
+  const file=e.target.files[0];
+  
+  if(!file)return;
   const r=new FileReader();
+
   r.onload=ev=>{
-    const lines=ev.target.result.split('\n').filter(l=>l.trim());lines.shift();
+    const lines=ev.target.result.split('\n').filter(l=>l.trim());
+    
+    lines.shift();
 
     if(modo==='parcial'){
       dadosParcial=[];
       lines.forEach(l=>{
-        const c=parseCSV(l);
+        const c = parseCSV(l);
         if(c[0]){
-            const d=novoParcial({nome:c[0],ranking:c[1],perfParcial:c[2],perfMensal:c[3],nvMetaP:c[4],nvMetaM:c[5],nvReal:c[6],tmMeta:c[7],tmReal:c[8],ovMetaP:c[9],ovMetaM:c[10],ovReal:c[11],posMetaP:c[12],posMetaM:c[13],posReal:c[14],mixMetaP:c[15],mixMetaM:c[16],mixReal:c[17]});calcParcial(d);dadosParcial.push(d);}});
-      renderParcial();
+            const d=criarTabelaRepresentanteParcial({
+              nome:c[0],
+              ranking:c[1],
+              perfParcial:c[2],
+              perfMensal:c[3],
+              nvMetaP:c[4],
+              nvMetaM:c[5],
+              nvReal:c[6],
+              tmMeta:c[7],
+              tmReal:c[8],
+              ovMetaP:c[9],
+              ovMetaM:c[10],
+              ovReal:c[11],
+              posMetaP:c[12],
+              posMetaM:c[13],
+              posReal:c[14],
+              mixMetaP:c[15],
+              mixMetaM:c[16],
+              mixReal:c[17]});
+              
+              calcParcial(d);
+              dadosParcial.push(d);
+          }});
+      renderizarTabelaParcial();
     }else{
       dadosFechamento=[];
       lines.forEach(l=>{

@@ -129,7 +129,7 @@ function salvarEdit(){
     d.ovMetaP=gv('e_ovMetaP');d.ovMetaM=gv('e_ovMetaM');d.ovReal=gv('e_ovReal');
     d.posMetaP=gv('e_posMetaP');d.posMetaM=gv('e_posMetaM');d.posReal=gv('e_posReal');
     d.mixMetaP=gv('e_mixMetaP');d.mixMetaM=gv('e_mixMetaM');d.mixReal=gv('e_mixReal');
-    calcParcial(d);renderParcial();
+    calcParcial(d);renderizarTabelaParcial();
   } else {
     const d=dadosFechamento[editIdx];
     d.nome=gv('e_nome');d.ranking=gv('e_ranking');d.perfMensal=gv('e_perfMensal');

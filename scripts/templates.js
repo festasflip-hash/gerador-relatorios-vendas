@@ -1,6 +1,28 @@
+
+export function getPrintPage(html,nome,css){
+  return `
+  <!DOCTYPE html>
+        <html lang="pt-BR">
+          <head>
+            <meta charset="UTF-8">
+              <title>Relatório Individual - ${nome}</title>
+              <style>${css}</style>
+            </head>
+            <body>${html}</body>
+          </html>
+  `
+}
+
 const TPL_KEY='relatorios_templates_v1';
-function getTemplates(){try{return JSON.parse(localStorage.getItem(TPL_KEY)||'[]');}catch{return[];}}
-function saveTemplates(t){localStorage.setItem(TPL_KEY,JSON.stringify(t));}
+function getTemplates(){
+  try{
+    return JSON.parse(localStorage.getItem(TPL_KEY)||'[]');
+  }catch{
+    return[];
+  }}
+function saveTemplates(t){
+  localStorage.setItem(TPL_KEY,JSON.stringify(t));
+}
 
 function salvarComoTemplate(){
   const nome=gv('e_nome')||'Sem nome';
@@ -54,7 +76,7 @@ function renderTplBody(){
 function aplicarTemplate(id){
   const t=getTemplates().find(x=>x.id===id);
   if(!t)return;
-  if(t.modo==='parcial'){dadosParcial.push(novoParcial({nome:t.nome,...t.metas}));renderParcial();}
+  if(t.modo==='parcial'){dadosParcial.push(criarTabelaRepresentanteParcial({nome:t.nome,...t.metas}));renderizarTabelaParcial();}
   else{dadosFechamento.push(novoFechamento({nome:t.nome,...t.metas}));renderFechamento();}
   fecharTplModal();
   alert(`✅ Template "${t.nome}" aplicado! Preencha os realizados na linha adicionada.`);
