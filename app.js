@@ -1,201 +1,138 @@
-import {PrintCSS} from "./scripts/printCSS.js";
-import { criarTabelaRepresentanteFechamento, renderizarTabelaFechamento } from "./scripts/tabelaFechamento.js";
-import { criarTabelaRepresentanteParcial, renderizarTabelaParcial } from "./scripts/tabelaParcial.js";
-import {getPrintPage} from "./scripts/templates.js";
-import { estado,PESOS_INDICADORES } from "./scripts/state.js";
+﻿import { PrintCSS } from "./scripts/printCSS.js";
+import { criarRepresentanteFechamento, renderizarTabelaFechamento } from "./scripts/tabelaFechamento.js";
+import { criarRepresentanteParcial, renderizarTabelaParcial } from "./scripts/tabelaParcial.js";
+import { abrirSeletorCSV } from "./scripts/csv.js";
+import { abrirGerenciadorTemplates, getPrintPage } from "./scripts/templates.js";
+import { estado } from "./scripts/state.js";
+import { gerarHTMLRelatorioParcial } from "./scripts/relatorioParcial.js";
+import { gerarHTMLRelatorioFechamento } from "./scripts/relatorioFechamento.js";
+import { renderDashboard } from "./scripts/dashboard.js";
+import {
+  converterParaFloat,
+  formatarMoeda,
+  obterClassePerformance,
+  obterCorHex
+} from "./scripts/helpers.js";
 
+function obterDadosAtivos() {
+  return estado.modoAtivo === "parcial"
+    ? estado.listaRepresentantesParcial
+    : estado.listaRepresentantesFechamento;
+}
 
-
-/* ============ TABS ============ */
-
-
-function alternarAba(modoSelecionado){
+export function alternarAba(modoSelecionado) {
   estado.modoAtivo = modoSelecionado;
-  ['parcial','fechamento','dashboard'].forEach(t=>{
-    document.getElementById('tab'+t.charAt(0).toUpperCase()+t.slice(1)).classList.toggle('active',estado.estado.modoAtivoAtivo===t);
-  });
-  document.getElementById('tableWrapParcial').classList.toggle('hidden',estado.modoAtivo!=='parcial');
-  document.getElementById('tableWrapFechamento').classList.toggle('hidden',modo!=='fechamento');
-  document.getElementById('dashWrap').classList.toggle('hidden',modo!=='dashboard');
-  document.getElementById('controlsBar').classList.toggle('hidden',modo==='dashboard');
-  document.getElementById('legendBar').classList.toggle('hidden',modo==='dashboard');
-  document.getElementById('resultsSection').style.display='none';
 
-  const subs={
-    parcial:'Modo: Acompanhamento Parcial',fechamento:'Modo: Fechamento do Mês',dashboard:'Modo: Dashboard Consolidado'
+  document.getElementById("tabParcial").classList.toggle("active", modoSelecionado === "parcial");
+  document.getElementById("tabFechamento").classList.toggle("active", modoSelecionado === "fechamento");
+  document.getElementById("tabDashboard").classList.toggle("active", modoSelecionado === "dashboard");
+
+  document.getElementById("tableWrapParcial").classList.toggle("hidden", modoSelecionado !== "parcial");
+  document.getElementById("tableWrapFechamento").classList.toggle("hidden", modoSelecionado !== "fechamento");
+  document.getElementById("dashWrap").classList.toggle("hidden", modoSelecionado !== "dashboard");
+
+  document.getElementById("controlsBar").classList.toggle("hidden", modoSelecionado === "dashboard");
+  document.getElementById("legendBar").classList.toggle("hidden", modoSelecionado === "dashboard");
+  document.getElementById("resultsSection").style.display = "none";
+
+  const subtitulo = {
+    parcial: "Modo: Acompanhamento Parcial",
+    fechamento: "Modo: Fechamento do Mês",
+    dashboard: "Modo: Dashboard Consolidado"
   };
-    document.getElementById('topbarSub').textContent=subs[modo];
-  if(modo!=='dashboard'){
-    document.getElementById('ctrlTitle').textContent=modo==='parcial'?'Representantes — Parcial':'Representantes — Fechamento';
-    document.getElementById('lblPeriodo').textContent=modo==='parcial'?'Período Parcial':'Período do Fechamento';
-    document.getElementById('legendaExtra').textContent=modo==='fechamento'?'Status: Meta Batida / Não Batida':'';
-  } else { 
-    renderDashboard(); 
+
+  document.getElementById("topbarSub").textContent = subtitulo[modoSelecionado] || "";
+
+  if (modoSelecionado === "dashboard") {
+    renderDashboard();
+    return;
   }
-}
 
+  document.getElementById("ctrlTitle").textContent =
+    modoSelecionado === "parcial" ? "Representantes — Parcial" : "Representantes — Fechamento";
+  document.getElementById("lblPeriodo").textContent =
+    modoSelecionado === "parcial" ? "Período Parcial" : "Período do Fechamento";
+  document.getElementById("legendaExtra").textContent =
+    modoSelecionado === "fechamento" ? "Status: Meta Batida / Não Batida" : "";
 
-
-/* ============ ADD / CLEAR ============ */
-function addRow(){
-  if(modo==='parcial'){
-    dadosParcial.push(criarTabelaRepresentanteParcial());
+  if (modoSelecionado === "parcial") {
     renderizarTabelaParcial();
-  }
-  else if(modo==='fechamento'){
-    dadosFechamento.push(criarTabelaRepresentanteFechamento());
+  } else {
     renderizarTabelaFechamento();
   }
 }
-document.getElementById("btn-add").addEventListener("click",addRow);
 
-function clearAll(){
-  if(modo==='dashboard')
-    return;
-  if(!confirm('Limpar todos os dados?'))
-    return;
-  if(modo==='parcial'){
-    dadosParcial=[];
+export function adicionarLinha() {
+  if (estado.modoAtivo === "parcial") {
+    estado.listaRepresentantesParcial.push(criarRepresentanteParcial());
     renderizarTabelaParcial();
-  }
-  else{
-    dadosFechamento=[];
+  } else if (estado.modoAtivo === "fechamento") {
+    estado.listaRepresentantesFechamento.push(criarRepresentanteFechamento());
     renderizarTabelaFechamento();
   }
-  document.getElementById('resultsSection').style.display='none';
-}
-document.getElementById("btn-clear").addEventListener("click",clearAll);
-
-
-
-/* ============ AÇÕES AUTOMÁTICAS ============ */
-function acoesAuto(d){
-  const itens=[];
-  const ovFalta=f(d.ovMeta)-f(d.ovReal);
-    if(ovFalta>0){
-      const pct=(f(d.ovReal)/f(d.ovMeta)*100).toFixed(0);
-      itens.push({
-        c:'d-r',
-        t:`<strong>Prioridade máxima:</strong> 
-        faturar mais <strong>R$ ${fmt(ovFalta)}</strong> para fechar Objetivo de Vendas (${pct}%) — maior peso (60 pts).`
-        });}
-  const posFalta=f(d.posMeta)-f(d.posReal);
-    if(posFalta>0)itens.push({
-      c:'d-o',
-      t:`Positivar mais <strong>
-      ${posFalta.toFixed(0)} clientes</strong> para atingir a meta de ${d.posMeta}.`
-    });
-  const tmFalta=f(d.tmMeta)-f(d.tmReal);
-    if(tmFalta>0)itens.push({
-      c:'d-o',
-      t:`Elevar Ticket Médio em <strong> R$ ${fmt(tmFalta)}</strong>, de R$ ${fmt(f(d.tmReal))} para R$ ${fmt(f(d.tmMeta))}.`
-    });
-  const mixFalta=f(d.mixMeta)-f(d.mixReal);
-    if(mixFalta>0)itens.push({
-      c:'d-o',
-      t:`Ampliar Mix de Vendas em mais <strong>${mixFalta.toFixed(0)} SKUs</strong>.`
-    });
-  const nvFalta=f(d.nvMeta)-f(d.nvReal);
-    if(nvFalta>0)itens.push({
-      c:f(d.nvReal)===0?'d-r':'d-o',
-      t:`Realizar mais <strong>${nvFalta.toFixed(0)} novas vendas</strong> para atingir a meta de ${d.nvMeta}.`
-    });
-  if(!itens.length)itens.push({
-    c:'d-g',
-    t:`Todas as metas batidas — <strong>manter o ritmo e consolidar os resultados</strong> no próximo período.`
-  });
-  return itens.map(i=>`
-    <div class="pi">
-      <div class="pdot ${i.c}"></div>
-      <span>${i.t}</span>
-    </div>`).join('');
-}
-function priorParcial(d){
-  const itens=[];
-  const nvFalta=f(d.nvMetaM)-f(d.nvReal);
-    if(f(d.nvReal)===0)itens.push({
-      c:'d-r',
-      t:`Realizar <strong>${nvFalta.toFixed(0)} novas vendas</strong> — zerado até agora.`});
-      else if(nvFalta>0)itens.push({
-        c:'d-o',
-        t:`Realizar mais <strong>${nvFalta.toFixed(0)} novas vendas</strong> para atingir meta mensal.`
-      });
-  const ovFalta=f(d.ovMetaM)-f(d.ovReal);
-    if(ovFalta>0){
-      const pct=(f(d.ovReal)/f(d.ovMetaM)*100).toFixed(0);
-      itens.push({
-        c:pct<50?'d-r':'d-o',
-        t:`Faturar mais <strong>R$ ${fmt(ovFalta)}</strong> para fechar Objetivo de Vendas (${pct}%).`
-      });
-    }
-  const posFalta=f(d.posMetaM)-f(d.posReal);
-    if(posFalta>0)itens.push({
-      c:'d-o',
-      t:`Positivar mais <strong>${posFalta.toFixed(0)} clientes</strong>.`
-    });
-  const mixFalta=f(d.mixMetaM)-f(d.mixReal);
-    if(mixFalta>0)itens.push({
-      c:'d-o',
-      t:`Ampliar Mix em mais <strong>${mixFalta.toFixed(0)} SKUs</strong>.`
-    });
-  const tmFalta=f(d.tmMeta)-f(d.tmReal);
-    if(tmFalta>0)itens.push({
-      c:'d-o',
-      t:`Elevar Ticket Médio de <strong>R$ ${fmt(f(d.tmReal))}</strong> para <strong>R$ ${fmt(f(d.tmMeta))}</strong>.`
-    });
-  if(!itens.length)itens.push({
-    c:'d-g',
-    t:`Todos os indicadores mensais atingidos — <strong>excelente performance!</strong>`
-  });
-  return itens.map(i=>`
-    <div class="pi">
-      <div class="pdot ${i.c}"></div>
-      <span>${i.t}</span>
-    </div>`).join('');
 }
 
+export function limparTabela() {
+  if (estado.modoAtivo === "dashboard") return;
+  if (!confirm("Limpar todos os dados?")) return;
 
-/* ============ GERAR / VISUALIZAR ============ */
-function gerarTodos(){
-  if(modo==='dashboard')return;
+  if (estado.modoAtivo === "parcial") {
+    estado.listaRepresentantesParcial = [];
+    renderizarTabelaParcial();
+  } else {
+    estado.listaRepresentantesFechamento = [];
+    renderizarTabelaFechamento();
+  }
 
-  const dados=modo==='parcial'?dadosParcial:dadosFechamento;
+  document.getElementById("resultsSection").style.display = "none";
+}
 
-  const validos=dados.filter(d=>d.nome&&d.nome.trim());
+export function gerarTodosRelatorios() {
+  if (estado.modoAtivo === "dashboard") return;
 
-  if(!validos.length){alert('Adicione ao menos um representante com nome!');return;}
+  const dados = obterDadosAtivos();
+  const validos = dados.filter(d => d.nome && d.nome.trim());
 
-  const list=document.getElementById('repList');
+  if (!validos.length) {
+    alert("Adicione ao menos um representante com nome!");
+    return;
+  }
 
-  list.innerHTML='';
+  const list = document.getElementById("repList");
+  list.innerHTML = "";
 
-  validos.forEach((d,i)=>{
-    const pm=f(d.perfMensal),pp=modo==='parcial'?f(d.perfParcial):null;
-    const [pmCls,pmLbl,pmTc]=perfClass(pm);
-    const div=document.createElement('div');div.className='rep-card-mini';
+  validos.forEach((d, i) => {
+    const pm = converterParaFloat(d.perfMensal);
+    const [pmCls, pmLbl, pmTc] = obterClassePerformance(pm);
+    const idx = dados.indexOf(d);
 
-    let p2=modo==='parcial'
-      ?`<div class="rcm-pi ${perfClass(pp)[2]}"><div class="pl">Parcial</div><div class="pv ${perfClass(pp)[0]}">${pp}%</div><div class="ps ${perfClass(pp)[0]}">${perfClass(pp)[1]}</div></div>`
-      :(()=>{
-        const nvOk=f(d.nvReal)>=f(d.nvMeta),
-        tmOk=f(d.tmReal)>=f(d.tmMeta),
-        ovOk=f(d.ovReal)>=f(d.ovMeta),
-        posOk=f(d.posReal)>=f(d.posMeta),
-        mixOk=f(d.mixReal)>=f(d.mixMeta);
-        const bat=[nvOk,tmOk,ovOk,posOk,mixOk].filter(Boolean).length;
-        const tc=bat===5?'tc-verde':bat===0?'tc-baixa':'tc-media';
-        const vc=bat===5?'c-verde':bat===0?'c-baixa':'c-media';
-        
-        return `
-          <div class="rcm-pi ${tc}">
-            <div class="pl">Metas</div>
-            <div class="pv ${vc}">${bat}/5</div>
-            <div class="ps">batidas</div>
-          </div>`;
-        })();
+    const p2 =
+      estado.modoAtivo === "parcial"
+        ? (() => {
+            const pp = converterParaFloat(d.perfParcial);
+            const [ppCls, ppLbl, ppTc] = obterClassePerformance(pp);
+            return `<div class="rcm-pi ${ppTc}"><div class="pl">Parcial</div><div class="pv ${ppCls}">${pp}%</div><div class="ps ${ppCls}">${ppLbl}</div></div>`;
+          })()
+        : (() => {
+            const nvOk = converterParaFloat(d.nvReal) >= converterParaFloat(d.nvMeta);
+            const tmOk = converterParaFloat(d.tmReal) >= converterParaFloat(d.tmMeta);
+            const ovOk = converterParaFloat(d.ovReal) >= converterParaFloat(d.ovMeta);
+            const posOk = converterParaFloat(d.posReal) >= converterParaFloat(d.posMeta);
+            const mixOk = converterParaFloat(d.mixReal) >= converterParaFloat(d.mixMeta);
+            const bat = [nvOk, tmOk, ovOk, posOk, mixOk].filter(Boolean).length;
+            const tc = bat === 5 ? "tc-verde" : bat === 0 ? "tc-baixa" : "tc-media";
+            const vc = bat === 5 ? "c-verde" : bat === 0 ? "c-baixa" : "c-media";
+            return `
+              <div class="rcm-pi ${tc}">
+                <div class="pl">Metas</div>
+                <div class="pv ${vc}">${bat}/5</div>
+                <div class="ps">batidas</div>
+              </div>`;
+          })();
 
-    const idx=dados.indexOf(d);
-    div.innerHTML=`
+    const div = document.createElement("div");
+    div.className = "rep-card-mini";
+    div.innerHTML = `
       <div class="rcm-head">
         <span class="rcm-name">${d.nome}</span>
         <span class="rcm-rank">${d.ranking}º</span>
@@ -208,91 +145,139 @@ function gerarTodos(){
         </div>
       </div>
       <div class="rcm-actions">
-        <button class="btn-view" onclick="verRel(${idx})">👁 Ver</button>
-        <button class="btn-print" onclick="imprimirRel(${idx})">🖨️ PDF</button>
-      </div>
-    </div>`;
+        <button class="btn-view" onclick="visualizarRelatorio(${idx})">👁 Ver</button>
+        <button class="btn-print" onclick="imprimirRelatorioPorIndice(${idx})">🖨️ PDF</button>
+      </div>`;
+
     list.appendChild(div);
   });
-  document.getElementById('resultsSection').style.display='block';
-  document.getElementById('resultsTitle').textContent=`${validos.length} relatório(s) gerado(s)`;
-  document.getElementById('btnPrintAll').style.display='block';
-  document.getElementById('btnZipAll').style.display=modo==='fechamento'?'block':'none';
-  document.getElementById('resultsSection').scrollIntoView({behavior:'smooth'});
-}
-//Vincular a função ao evento diretamente
-document.getElementById("btn-gerar").addEventListener("click", gerarTodos);
 
-
-function verRel(i){
-  const dados=modo==='parcial'?dadosParcial:dadosFechamento;
-  const html=gerarRelatorio(dados[i]);
-  relAtual=html;relAtualNome=dados[i].nome;
-  document.getElementById('modalTitle').textContent=`Relatório — ${dados[i].nome}`;
-  document.getElementById('modalContent').innerHTML=html;
-  document.getElementById('modalOverlay').classList.add('active');
-}
-function fecharModal(){document.getElementById('modalOverlay').classList.remove('active');}
-function closeModal(e){if(e.target===document.getElementById('modalOverlay'))fecharModal();}
-
-
-async function printHTML(html,nome){
- 
-  const win=window.open('','_blank');
-
-  win.document.write(getPrintPage(html,nome,PrintCSS));
-
-          win.document.close();
-          setTimeout(()=>{
-            win.focus();
-            win.print();
-          },600);
-    }
-
-function imprimirAtual(){
-  if(relAtual)printHTML(relAtual,relAtualNome||'Relatorio');}
-function imprimirRel(i){
-  const d=(modo==='parcial'?dadosParcial:dadosFechamento)[i];
-  printHTML(gerarRelatorio(d),d.nome);
-}
-function imprimirTodos(){
-  const dados=modo==='parcial'?dadosParcial:dadosFechamento;
-  let h='';
-  dados.filter(d=>d.nome).forEach((d,i)=>{
-    h+=gerarRelatorio(d)+(i<dados.length-1?'<div style="page-break-after:always"></div>':'');
-  });
-  printHTML(h,'Relatorios_Lote');
+  document.getElementById("resultsSection").style.display = "block";
+  document.getElementById("resultsTitle").textContent = `${validos.length} relatório(s) gerado(s)`;
+  document.getElementById("btnPrintAll").style.display = "block";
+  document.getElementById("btnZipAll").style.display = estado.modoAtivo === "fechamento" ? "block" : "none";
+  document.getElementById("resultsSection").scrollIntoView({ behavior: "smooth" });
 }
 
-/* ============ ZIP ============ */
-async function baixarZip(){
-  if(modo!=='fechamento')return;
-  const zip=new JSZip();
-  const mes=document.getElementById('mesInput').value;
-  dadosFechamento.filter(d=>d.nome&&d.nome.trim()).forEach(d=>{
-    const nome=`Relatório Individual - ${d.nome.replace(/[\/\\:*?"<>|]/g,'_')}`;
-    zip.file(`${nome}.html`,`
-      <!DOCTYPE html>
-        <html lang="pt-BR">
-          <head>
-            <meta charset="UTF-8">
-              <title>${nome}</title>
-              <style>${printCSS}</style>
-          </head>
-          <body>${relFechamento(d)}</body>
-        </html>`);
-  });
-  const blob=await zip.generateAsync({type:'blob'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`Relatorios_Fechamento_${mes.replace(/ /g,'_')}.zip`;
+export function visualizarRelatorio(indice) {
+  const dados = obterDadosAtivos();
+  const representante = dados[indice];
+  if (!representante) return;
+
+  const html =
+    estado.modoAtivo === "parcial"
+      ? gerarHTMLRelatorioParcial(representante)
+      : gerarHTMLRelatorioFechamento(representante);
+
+  estado.htmlRelatorioAtivo = html;
+  estado.nomeRelatorioAtivo = representante.nome;
+  document.getElementById("modalTitle").textContent = `Relatório — ${representante.nome}`;
+  document.getElementById("modalContent").innerHTML = html;
+  document.getElementById("modalOverlay").classList.add("active");
+}
+
+export function fecharModalRelatorio() {
+  document.getElementById("modalOverlay").classList.remove("active");
+}
+
+export function fecharModalRelatorioAoClicarFora(evento) {
+  if (evento.target === document.getElementById("modalOverlay")) {
+    fecharModalRelatorio();
+  }
+}
+
+function abrirJanelaImpressao(html, nome) {
+  const win = window.open("", "_blank");
+  if (!win) return;
+  win.document.write(getPrintPage(html, nome, PrintCSS));
+  win.document.close();
+  setTimeout(() => {
+    win.focus();
+    win.print();
+  }, 600);
+}
+
+export function imprimirRelatorioAtivo() {
+  if (estado.htmlRelatorioAtivo) {
+    abrirJanelaImpressao(estado.htmlRelatorioAtivo, estado.nomeRelatorioAtivo || "Relatorio");
+  }
+}
+
+export function imprimirRelatorioPorIndice(indice) {
+  const dados = obterDadosAtivos();
+  const representante = dados[indice];
+  if (!representante) return;
+
+  const html =
+    estado.modoAtivo === "parcial"
+      ? gerarHTMLRelatorioParcial(representante)
+      : gerarHTMLRelatorioFechamento(representante);
+
+  abrirJanelaImpressao(html, representante.nome);
+}
+
+export function imprimirTodosRelatorios() {
+  const dados = obterDadosAtivos().filter(d => d.nome && d.nome.trim());
+  if (!dados.length) return;
+
+  const html = dados
+    .map((d, index) => {
+      const rel =
+        estado.modoAtivo === "parcial"
+          ? gerarHTMLRelatorioParcial(d)
+          : gerarHTMLRelatorioFechamento(d);
+      return rel + (index < dados.length - 1 ? '<div style="page-break-after:always"></div>' : "");
+    })
+    .join("");
+
+  abrirJanelaImpressao(html, "Relatorios_Lote");
+}
+
+export async function baixarRelatoriosEmZip() {
+  if (estado.modoAtivo !== "fechamento") return;
+  const zip = new JSZip();
+  const mes = document.getElementById("mesInput").value || "Relatorios";
+
+  estado.listaRepresentantesFechamento
+    .filter(d => d.nome && d.nome.trim())
+    .forEach(d => {
+      const nomeArquivo = `Relatório Individual - ${d.nome.replace(/[\\/:*?"<>|]/g, "_")}`;
+      const conteudo = getPrintPage(gerarHTMLRelatorioFechamento(d), nomeArquivo, PrintCSS);
+      zip.file(`${nomeArquivo}.html`, conteudo);
+    });
+
+  const blob = await zip.generateAsync({ type: "blob" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `Relatorios_Fechamento_${mes.replace(/ /g, "_")}.zip`;
   a.click();
 }
 
-/* ============ DASHBOARD ============ */
+const btnAdicionar = document.getElementById("btn-add");
+const btnLimpar = document.getElementById("btn-clear");
+const btnGerar = document.getElementById("btn-gerar");
+const btnCsv = document.getElementById("btn-csv");
+const btnTpl = document.getElementById("btn-tpl");
 
-// Inicializar com 3 linhas
-dadosParcial.push(criarTabelaRepresentanteParcial());
-dadosParcial.push(criarTabelaRepresentanteParcial());
-dadosParcial.push(criarTabelaRepresentanteParcial());
+if (btnAdicionar) btnAdicionar.addEventListener("click", adicionarLinha);
+if (btnLimpar) btnLimpar.addEventListener("click", limparTabela);
+if (btnGerar) btnGerar.addEventListener("click", gerarTodosRelatorios);
+if (btnCsv) btnCsv.addEventListener("click", abrirSeletorCSV);
+if (btnTpl) btnTpl.addEventListener("click", abrirGerenciadorTemplates);
+
+estado.listaRepresentantesParcial.push(criarRepresentanteParcial());
+estado.listaRepresentantesParcial.push(criarRepresentanteParcial());
+estado.listaRepresentantesParcial.push(criarRepresentanteParcial());
 renderizarTabelaParcial();
+
+window.alternarAba = alternarAba;
+window.adicionarLinha = adicionarLinha;
+window.limparTabela = limparTabela;
+window.gerarTodosRelatorios = gerarTodosRelatorios;
+window.visualizarRelatorio = visualizarRelatorio;
+window.fecharModalRelatorio = fecharModalRelatorio;
+window.fecharModalRelatorioAoClicarFora = fecharModalRelatorioAoClicarFora;
+window.imprimirRelatorioAtivo = imprimirRelatorioAtivo;
+window.imprimirRelatorioPorIndice = imprimirRelatorioPorIndice;
+window.imprimirTodosRelatorios = imprimirTodosRelatorios;
+window.baixarRelatoriosEmZip = baixarRelatoriosEmZip;

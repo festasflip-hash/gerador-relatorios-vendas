@@ -15,9 +15,9 @@
   <span id="topbarSub">Modo: Acompanhamento Parcial</span>
 </div>
 <div class="tabs">
-  <button class="tab-btn active" id="tabParcial" onclick="switchTab('parcial')">📅 Acompanhamento Parcial</button>
-  <button class="tab-btn" id="tabFechamento" onclick="switchTab('fechamento')">🏁 Fechamento do Mês</button>
-  <button class="tab-btn" id="tabDashboard" onclick="switchTab('dashboard')">📈 Dashboard</button>
+  <button class="tab-btn active" id="tabParcial" onclick="alternarAba('parcial')">📅 Acompanhamento Parcial</button>
+  <button class="tab-btn" id="tabFechamento" onclick="alternarAba('fechamento')">🏁 Fechamento do Mês</button>
+  <button class="tab-btn" id="tabDashboard" onclick="alternarAba('dashboard')">📈 Dashboard</button>
 </div>
 
 <div class="container">
@@ -39,8 +39,8 @@
     <button id="btn-add" class="btn btn-add">+ Linha</button>
     <button id="btn-clear" class="btn btn-clear">🗑 Limpar</button>
     <button id="btn-gerar" class="btn btn-gerar">⚡ Gerar Relatórios</button>
-    <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="handleCSV(event)">
-    <input type="file" id="jsonFile" accept=".json" style="display:none" onchange="handleJSON(event)">
+    <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="processarArquivoCSV(event)">
+    <input type="file" id="jsonFile" accept=".json" style="display:none" onchange="processarArquivoJSON(event)">
   </div>
 
   <div class="legend" id="legendBar">
@@ -114,8 +114,8 @@
     <div class="results-header">
       <h2 id="resultsTitle">Relatórios Gerados</h2>
       <div class="results-actions">
-        <button class="btn-zip-all" id="btnZipAll" onclick="baixarZip()">📦 Baixar ZIP</button>
-        <button class="btn-print-all" id="btnPrintAll" onclick="imprimirTodos()">🖨️ Imprimir Todos</button>
+        <button class="btn-zip-all" id="btnZipAll" onclick="baixarRelatoriosEmZip()">📦 Baixar ZIP</button>
+        <button class="btn-print-all" id="btnPrintAll" onclick="imprimirTodosRelatorios()">🖨️ Imprimir Todos</button>
       </div>
     </div>
     <div class="rep-list" id="repList"></div>
@@ -123,13 +123,13 @@
 </div>
 
 <!-- MODAL VISUALIZAÇÃO -->
-<div class="modal-overlay" id="modalOverlay" onclick="closeModal(event)">
+<div class="modal-overlay" id="modalOverlay" onclick="fecharModalRelatorioAoClicarFora(event)">
   <div class="modal-inner wide">
     <div class="modal-topbar">
       <span id="modalTitle">Relatório</span>
       <div style="display:flex;gap:8px">
-        <button class="modal-close" onclick="imprimirAtual()">🖨️ PDF</button>
-        <button class="modal-close" onclick="fecharModal()">✕</button>
+        <button class="modal-close" onclick="imprimirRelatorioAtivo()">🖨️ PDF</button>
+        <button class="modal-close" onclick="fecharModalRelatorio()">✕</button>
       </div>
     </div>
     <div id="modalContent"></div>
@@ -137,35 +137,35 @@
 </div>
 
 <!-- MODAL EDIÇÃO -->
-<div class="modal-overlay" id="editOverlay" onclick="closeEditModal(event)">
+<div class="modal-overlay" id="editOverlay" onclick="fecharModalEdicaoAoClicarFora(event)">
   <div class="modal-inner narrow">
     <div class="modal-topbar">
       <span id="editTitle">Editar Representante</span>
-      <button class="modal-close" onclick="fecharEditModal()">✕</button>
+      <button class="modal-close" onclick="fecharModalEdicao()">✕</button>
     </div>
     <div class="modal-body" id="editBody"></div>
   </div>
 </div>
 
 <!-- MODAL TEMPLATE -->
-<div class="modal-overlay" id="tplOverlay" onclick="closeTplModal(event)">
+<div class="modal-overlay" id="tplOverlay" onclick="fecharModalTemplatesAoClicarFora(event)">
   <div class="modal-inner narrow">
     <div class="modal-topbar">
       <span>📁 Gerenciador de Templates</span>
-      <button class="modal-close" onclick="fecharTplModal()">✕</button>
+      <button class="modal-close" onclick="fecharModalTemplates()">✕</button>
     </div>
     <div class="modal-body" id="tplBody"></div>
   </div>
 </div>
 
 <script type="module" src="app.js"></script>
-<script type="module" src="/scripts/csv.js"></script>
-<script type="module" src="/scripts/helpers.js"></script>
-<script type="module" src="/scripts/modal.js"></script>
-<script type="module" src="/scripts/templates.js"></script>
-<script type="module" src="/scripts/relatorioParcial.js"></script>
-<script type="module" src="/scripts/relatorioFechamento.js"></script>
-<script type="module" src="/scripts/dashboard.js"></script>
-<script type="module" src="/scripts/printCSS.js"></script>
+<script type="module" src="scripts/csv.js"></script>
+<script type="module" src="scripts/helpers.js"></script>
+<script type="module" src="scripts/modal.js"></script>
+<script type="module" src="scripts/templates.js"></script>
+<script type="module" src="scripts/relatorioParcial.js"></script>
+<script type="module" src="scripts/relatorioFechamento.js"></script>
+<script type="module" src="scripts/dashboard.js"></script>
+<script type="module" src="scripts/printCSS.js"></script>
 </body>
 </html>
