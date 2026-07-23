@@ -1,5 +1,8 @@
-import { estado } from "./state";
-import { converterParaFloat } from "./helpers";
+import { estado } from "./state.js";
+import { converterParaFloat } from "./helpers.js";
+import { criarTabelaRepresentanteParcial, renderizarTabelaParcial } from "./tabelaParcial.js";
+import { criarTabelaRepresentanteFechamento, renderizarTabelaFechamento } from "./tabelaFechamento.js";
+import { calcFechamento, calcParcial } from "./helpers.js";
 
 function downloadModelo(){
   let h,ex;
@@ -66,8 +69,8 @@ function handleCSV(e){
       lines.forEach(l=>{
         const c=parseCSV(l);
         if(c[0]){
-            const d=novoFechamento({nome:c[0],ranking:c[1],perfMensal:c[2],nvMeta:c[3],nvReal:c[4],tmMeta:c[5],tmReal:c[6],ovMeta:c[7],ovReal:c[8],posMeta:c[9],posReal:c[10],mixMeta:c[11],mixReal:c[12]});calcFechamento(d);dadosFechamento.push(d);}});
-      renderFechamento();
+            const d=criarTabelaRepresentanteFechamento({nome:c[0],ranking:c[1],perfMensal:c[2],nvMeta:c[3],nvReal:c[4],tmMeta:c[5],tmReal:c[6],ovMeta:c[7],ovReal:c[8],posMeta:c[9],posReal:c[10],mixMeta:c[11],mixReal:c[12]});calcFechamento(d);dadosFechamento.push(d);}});
+      renderizarTabelaFechamento();
     }
     alert('✅ Importado e calculado com sucesso!');
   };

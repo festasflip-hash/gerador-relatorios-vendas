@@ -1,8 +1,10 @@
+import { calcFechamento } from "./helpers";
+
 //d => representante
 //i => indice
 
 /* ============ FECHAMENTO — TABELA ============ */
-function criarTabelaRepresentanteFechamento(representante={}){
+export function criarTabelaRepresentanteFechamento(representante={}){
   return {
     nome:representante.nome||'',ranking:representante.ranking||'',perfMensal:representante.perfMensal||'',
     nvMeta:representante.nvMeta||'',nvReal:representante.nvReal||'',nvRes:representante.nvRes||'',
@@ -11,10 +13,10 @@ function criarTabelaRepresentanteFechamento(representante={}){
     posMeta:representante.posMeta||'',posReal:representante.posReal||'',posRes:representante.posRes||'',
     mixMeta:representante.mixMeta||'',mixReal:representante.mixReal||'',mixRes:representante.mixRes||''};
 }
-function renderizarTabelaFechamento(){
+export function renderizarTabelaFechamento(){
   document.getElementById('tableBodyFechamento').innerHTML=dadosFechamento.map((representante,indice)=>`
     <tr>
-      <td class="row-num">${i+1}</td>
+      <td class="row-num">${indice+1}</td>
       <td><input class="nome" value="${representante.nome}" oninput="dadosFechamento[${indice}].nome=this.value" placeholder="Nome"></td>
       <td><input class="num" value="${representante.ranking}" oninput="dadosFechamento[${indice}].ranking=this.value" placeholder="#"></td>
       <td><input class="num" value="${representante.perfMensal}" oninput="dadosFechamento[${indice}].perfMensal=this.value" placeholder="0"></td>
@@ -35,11 +37,11 @@ function renderizarTabelaFechamento(){
       <td><input class="num calc" value="${representante.mixRes}" readonly title="Calculado automaticamente"></td>
       <td style="white-space:nowrap">
         <button class="edit-btn" onclick="abrirEdit(${indice},'fechamento')" title="Editar em formulário">✏️</button>
-        <button class="del-btn" onclick="dadosFechamento.splice(${indice},1);renderFechamento()" title="Remover">✕</button>
+        <button class="del-btn" onclick="dadosFechamento.splice(${indice},1);renderizarTabelaFechamento()" title="Remover">✕</button>
       </td>
     </tr>`).join('');
 }
-function autoCalcF(indice){
+export function autoCalcF(indice){
   calcFechamento(dadosFechamento[indice]);
   const cells=document.getElementById('tableBodyFechamento').rows[indice].cells;
   const calcMap=[[6,'nvRes'],[9,'tmRes'],[12,'ovRes'],[15,'posRes'],[18,'mixRes']];

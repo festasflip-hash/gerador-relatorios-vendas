@@ -77,7 +77,7 @@ function aplicarTemplate(id){
   const t=getTemplates().find(x=>x.id===id);
   if(!t)return;
   if(t.modo==='parcial'){dadosParcial.push(criarTabelaRepresentanteParcial({nome:t.nome,...t.metas}));renderizarTabelaParcial();}
-  else{dadosFechamento.push(novoFechamento({nome:t.nome,...t.metas}));renderFechamento();}
+  else{dadosFechamento.push(criarTabelaRepresentanteFechamento({nome:t.nome,...t.metas}));renderizarTabelaFechamento();}
   fecharTplModal();
   alert(`✅ Template "${t.nome}" aplicado! Preencha os realizados na linha adicionada.`);
 }

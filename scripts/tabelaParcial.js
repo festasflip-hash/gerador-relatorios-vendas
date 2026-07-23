@@ -1,3 +1,5 @@
+import { calcParcial } from "./helpers";
+
 // d => representante
 //i => indice
 

@@ -138,7 +138,7 @@ function salvarEdit(){
     d.ovMeta=gv('e_ovMeta');d.ovReal=gv('e_ovReal');
     d.posMeta=gv('e_posMeta');d.posReal=gv('e_posReal');
     d.mixMeta=gv('e_mixMeta');d.mixReal=gv('e_mixReal');
-    calcFechamento(d);renderFechamento();
+    calcFechamento(d);renderizarTabelaFechamento();
   }
   fecharEditModal();
 }
