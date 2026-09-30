@@ -9,8 +9,25 @@
   </head>
   <body>
     <div class="topbar">
-      <h1>📊 Gerador de Relatórios Individuais</h1>
-      <span id="topbarSub">Modo: Acompanhamento Parcial</span>
+      <div class="topbar-brand">
+        <img id="appBrandLogo" alt="" hidden />
+        <div>
+          <div class="topbar-company" id="appBrandName">
+            Gerador de Relatórios Comerciais
+          </div>
+          <h1>📊 Gerador de Relatórios Individuais</h1>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <span id="topbarSub">Modo: Acompanhamento Parcial</span>
+        <button
+          class="btn-brand"
+          onclick="abrirMarcaModal()"
+          title="Configurar marca"
+        >
+          🏢 Marca
+        </button>
+      </div>
     </div>
     <div class="tabs">
       <button
@@ -55,15 +72,28 @@
           <label>Mês de Referência</label>
           <input
             id="mesInput"
-            type="text"
-            value="Junho 2026"
-            style="width: 120px"
+            type="month"
+            value="2026-06"
+            onchange="handleMonthChange()"
+            style="width: 145px"
           />
         </div>
         <button class="btn btn-tpl" onclick="abrirTemplateManager()">
           📁 Templates
         </button>
         <button class="btn btn-csv" onclick="importCSV()">📂 CSV</button>
+        <button
+          class="btn btn-csv"
+          onclick="importarCSVAnterior()"
+          title="Importar o fechamento completo do mês anterior"
+        >
+          📂 CSV mês anterior
+        </button>
+        <span
+          id="historyStatus"
+          class="history-status"
+          aria-live="polite"
+        ></span>
         <button class="btn btn-add" onclick="addRow()">+ Linha</button>
         <button class="btn btn-clear" onclick="clearAll()">🗑 Limpar</button>
         <button class="btn btn-gerar" onclick="gerarTodos()">
@@ -75,6 +105,13 @@
           accept=".csv"
           style="display: none"
           onchange="handleCSV(event)"
+        />
+        <input
+          type="file"
+          id="previousCsvFile"
+          accept=".csv"
+          style="display: none"
+          onchange="handleCSVAnterior(event)"
         />
         <input
           type="file"
@@ -218,6 +255,58 @@
           </div>
         </div>
         <div class="rep-list" id="repList"></div>
+      </div>
+    </div>
+
+    <!-- MODAL MARCA -->
+    <div
+      class="modal-overlay"
+      id="brandOverlay"
+      onclick="closeBrandModal(event)"
+    >
+      <div class="modal-inner narrow">
+        <div class="modal-topbar">
+          <span>Identidade da empresa</span>
+          <button class="modal-close" onclick="fecharMarcaModal()">✕</button>
+        </div>
+        <div class="modal-body">
+          <label class="edit-field">
+            <span>Nome da empresa</span>
+            <input
+              id="brandNameInput"
+              type="text"
+              maxlength="60"
+              placeholder="Nome exibido nos relatórios"
+            />
+          </label>
+          <label class="edit-field">
+            <span>Logo (PNG, JPG ou WebP; até 1 MiB)</span>
+            <input
+              id="brandLogoInput"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onchange="handleBrandLogo(event)"
+            />
+          </label>
+          <img
+            id="brandLogoPreview"
+            class="brand-preview"
+            alt="Prévia do logo"
+            hidden
+          />
+          <button
+            class="btn btn-clear"
+            type="button"
+            onclick="removerLogoMarca()"
+          >
+            Remover logo
+          </button>
+          <div class="edit-actions">
+            <button class="btn-save" onclick="salvarMarca()">
+              Salvar marca
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
