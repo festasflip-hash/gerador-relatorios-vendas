@@ -866,6 +866,62 @@ function priorParcial(d) {
 }
 
 /* ============ RELATÓRIO PARCIAL ============ */
+function explicacaoIndicadoresHTML() {
+  const indicadores = [
+    [
+      "Novas Vendas",
+      5,
+      "Quantos clientes novos(Nunca compraram antes) o representante trouxe.",
+      "É o indicador que mostra prospecção ativa em vez de antender apenas a carteira existente.",
+      "Qualquer novo cliente é positivo; zero indica estagnação na carteira.",
+      "Garante que a equipe continua expandindo a base de cliente.",
+    ],
+    [
+      "Ticket Médio",
+      10,
+      "Valor médio das vendas. Indica quanto foi vendido, em média, por venda, em comparação com a meta de valor.",
+      "Vendas de valor baixo demais podem indicar vendas pequenas demais para o esforço comercial.",
+      "Acima da meta(Ex:R$3.000) é bom!; Muito abaixo pode indicar necessidade de revisão da abordagem comercial.",
+      "Avalia a qualidade da venda, não apenas a quantidade.",
+    ],
+    [
+      "Objetivo de Vendas",
+      60,
+      "Faturamento total realizado em relação ao objetivo de vendas estabelecido para o período.",
+      "Valor médio das vendas. Indica quanto foi vendido, em média, por venda, em comparação com a meta de valor.",
+      "Valor médio das vendas. Indica quanto foi vendido, em média, por venda, em comparação com a meta de valor.",
+      "Valor médio das vendas. Indica quanto foi vendido, em média, por venda, em comparação com a meta de valor.",
+    ],
+    [
+      "Positivação",
+      15,
+      "Quantidade de clientes positivados, ou seja, clientes que realizaram compras, comparada à meta.",
+      "Valor médio das vendas. Indica quanto foi vendido, em média, por venda, em comparação com a meta de valor.",
+      "Valor médio das vendas. Indica quanto foi vendido, em média, por venda, em comparação com a meta de valor.",
+      "Valor médio das vendas. Indica quanto foi vendido, em média, por venda, em comparação com a meta de valor.",
+    ],
+    [
+      "Mix de Produtos",
+      10,
+      "Quantidade de produtos diferentes (SKUs) vendidos em relação à meta de variedade.",
+      "Valor médio das vendas. Indica quanto foi vendido, em média, por venda, em comparação com a meta de valor.",
+      "Valor médio das vendas. Indica quanto foi vendido, em média, por venda, em comparação com a meta de valor.",
+      "Valor médio das vendas. Indica quanto foi vendido, em média, por venda, em comparação com a meta de valor.",
+    ],
+  ];
+
+  return `<div class="sec">Entenda cada indicador</div>
+    <div class="indicator-grid">
+      ${indicadores
+        .map(
+          ([nome, peso, oque, interpretacao, bomRuim, paraQueServe]) =>
+            `<div class="indicator-item"><div class="indicator-heading"><strong>${nome}</strong><span>Peso ${peso}</span></div><p><strong>O que mede:</strong> ${oque}</p><p><strong>Interpretar:</strong>${interpretacao}</p><p><strong>Bom/Ruim: </strong>${bomRuim}</p><p><strong>Para que serve: </strong>${paraQueServe}</p></div>`,
+        )
+        .join("")}
+    </div>
+    <p class="indicator-note">O resultado de cada indicador considera o percentual da meta atingida e seu peso na pontuação total, limitado à pontuação máxima do indicador.</p>`;
+}
+
 function relParcial(d) {
   const periodo = document.getElementById("periodoInput").value,
     mes = document.getElementById("mesInput").value;
@@ -894,10 +950,10 @@ function relParcial(d) {
         100,
     ) / 100;
   return `<div class="rel">
-    <div class="hd"><div class="hd-left"><h1>Relatório Individual de Desempenho</h1><h2>${d.nome} · ${mes}</h2></div><div class="hd-right"><strong>Referência: ${periodo}</strong><div class="rank-pill">🏆 ${d.ranking}º lugar no ranking</div></div></div>
+    <div class="hd"><div class="hd-left"><h1>Relatório Individual de Desempenho</h1><h2>${d.nome} · ${mes}</h2></div><div class="hd-right"><strong>Referência: ${periodo}</strong> <!-- <div class="rank-pill">🏆 ${d.ranking}º lugar no ranking</div> --> </div></div>
     <div class="sec">Visão Geral</div>
     <div class="top-cards">
-      <div class="tc tc-azul"><div class="lbl">Posição</div><div class="val c-azul">${d.ranking}º</div><div class="sub">ranking</div></div>
+      <!--<div class="tc tc-azul"><div class="lbl">Posição</div><div class="val c-azul">${d.ranking}º</div><div class="sub">ranking</div></div> -->
       <div class="tc ${ppTc}"><div class="lbl">Perf. Parcial</div><div class="val ${ppCls}">${pp}%</div><div class="sub">${periodo}</div></div>
       <div class="tc ${pmTc}"><div class="lbl">Perf. Mensal</div><div class="val ${pmCls}">${pm}%</div><div class="sub">${mes}</div></div>
       <div class="tc tc-azul"><div class="lbl">Resultado</div><div class="val c-azul">${tot}</div><div class="sub">de 100 pts</div></div>
@@ -935,9 +991,11 @@ function relParcial(d) {
         <div class="comp-row"><span class="cl">Positivação</span><span class="cv ${f(d.posReal) >= f(d.posMetaM) ? "c-verde" : "c-media"}">${d.posReal} / ${d.posMetaM} ${f(d.posMetaM) - f(d.posReal) > 0 ? "— faltam " + (f(d.posMetaM) - f(d.posReal)).toFixed(0) : "✓"}</span></div>
         <div class="comp-row"><span class="cl">Mix de Produtos</span><span class="cv ${f(d.mixReal) >= f(d.mixMetaM) ? "c-verde" : "c-media"}">${d.mixReal} / ${d.mixMetaM} SKUs ${f(d.mixMetaM) - f(d.mixReal) > 0 ? "— faltam " + (f(d.mixMetaM) - f(d.mixReal)).toFixed(0) : "✓"}</span></div>
       </div>
+      
     </div>
     <div class="sec">⚡ Prioridades até o fim do mês</div>
     <div class="prior-box">${priorParcial(d)}</div>
+    ${explicacaoIndicadoresHTML()}
     <div class="ft"><span>Relatório Individual · ${d.nome} · ${mes}</span><span>Confidencial · Diretoria Comercial</span></div>
   </div>`;
 }
@@ -1001,10 +1059,11 @@ function relFechamento(d) {
       `<div class="resumo-item"><span>Mix de Produtos</span><strong>${d.mixReal} / ${d.mixMeta} SKUs (faltaram ${(f(d.mixMeta) - f(d.mixReal)).toFixed(0)})</strong></div>`,
     );
   return `<div class="rel">
-    <div class="hd"><div class="hd-left"><h1>Relatório de Fechamento do Mês</h1><h2>${d.nome} · ${mes}</h2></div><div class="hd-right"><strong>Período: ${periodo}</strong><div class="rank-pill">🏆 ${d.ranking}º lugar no ranking</div></div></div>
+    <div class="hd"><div class="hd-left"><h1>Relatório de Fechamento do Mês</h1><h2>${d.nome} · ${mes}</h2></div><div class="hd-right"><strong>Período: ${periodo}</strong> <!-- <div class="rank-pill">🏆 ${d.ranking}º lugar no ranking</div> --> </div></div>
     <div class="sec">Visão Geral</div>
     <div class="top-cards">
-      <div class="tc tc-azul"><div class="lbl">Posição</div><div class="val c-azul">${d.ranking}º</div><div class="sub">ranking</div></div>
+      
+      <!-- <div class="tc tc-azul"><div class="lbl">Posição</div><div class="val c-azul">${d.ranking}º</div><div class="sub">ranking</div></div> -->
       <div class="tc ${pmTc}"><div class="lbl">Performance Final</div><div class="val ${pmCls}">${pm}%</div><div class="sub">${mes}</div></div>
       <div class="tc tc-azul"><div class="lbl">Resultado Total</div><div class="val c-azul">${tot}</div><div class="sub">de 100 pontos</div></div>
       <div class="tc ${bat === 5 ? "tc-verde" : bat === 0 ? "tc-baixa" : "tc-media"}"><div class="lbl">Metas Batidas</div><div class="val ${bat === 5 ? "c-verde" : bat === 0 ? "c-baixa" : "c-media"}">${bat}/5</div><div class="sub">indicadores</div></div>
@@ -1030,6 +1089,7 @@ function relFechamento(d) {
     </div>
     <div class="sec">🎯 Ações Recomendadas para o Próximo Mês</div>
     <div class="prior-box">${acoesAuto(d)}</div>
+    ${explicacaoIndicadoresHTML()}
     <div class="ft"><span>Relatório de Fechamento · ${d.nome} · ${mes}</span><span>Confidencial · Diretoria Comercial</span></div>
   </div>`;
 }
