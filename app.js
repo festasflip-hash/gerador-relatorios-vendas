@@ -915,7 +915,7 @@ function explicacaoIndicadoresHTML() {
       ${indicadores
         .map(
           ([nome, peso, oque, interpretacao, bomRuim, paraQueServe]) =>
-            `<div class="indicator-item"><div class="indicator-heading"><strong>${nome}</strong><span>Peso ${peso}</span></div><p><strong>O que mede:</strong> ${oque}</p><p><strong>Interpretar:</strong>${interpretacao}</p><p><strong>Bom/Ruim: </strong>${bomRuim}</p><p><strong>Para que serve: </strong>${paraQueServe}</p></div>`,
+            `<div class="indicator-item"><div class="indicator-heading"><strong>${nome}</strong><span>Peso ${peso}</span></div><div class="indicator-details"><p><strong>O que mede</strong>${oque}</p><p><strong>Como interpretar</strong>${interpretacao}</p><p><strong>Bom ou ruim</strong>${bomRuim}</p><p><strong>Para que serve</strong>${paraQueServe}</p></div></div>`,
         )
         .join("")}
     </div>
@@ -1170,7 +1170,7 @@ const printCSS = `*{margin:0;padding:0;box-sizing:border-box;}body{font-family:'
 function printHTML(html, nome) {
   const win = window.open("", "_blank");
   win.document.write(
-    `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório Individual - ${nome}</title><style>${printCSS}</style></head><body>${html}</body></html>`,
+    `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório Individual - ${nome}</title><style>${printCSS}.rel .indicator-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.rel .indicator-item{border:1px solid #cbd5df;border-left:3px solid #1e8449;border-radius:6px;padding:12px;background:#fff;box-shadow:0 1px 3px rgba(22,52,93,.06);break-inside:avoid;page-break-inside:avoid}.rel .indicator-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#17345d;font-size:13px;padding-bottom:8px;margin-bottom:9px;border-bottom:1px solid #e7edf2}.rel .indicator-heading span{color:#1e6640;background:#eaf7ef;border-radius:10px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap}.rel .indicator-details{display:grid;gap:8px}.rel .indicator-item p{font-size:11px;color:#4d5c6b;line-height:1.5}.rel .indicator-item p strong{display:block;color:#1a3c6e;font-size:10px;margin-bottom:2px}.rel .indicator-note{font-size:11px;color:#4d5c6b;line-height:1.5;margin-top:9px}@media(max-width:600px){.rel .indicator-grid{grid-template-columns:1fr}}</style></head><body>${html}</body></html>`,
   );
   win.document.close();
   setTimeout(() => {
