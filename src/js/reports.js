@@ -154,8 +154,156 @@ function explicacaoIndicadoresHTML() {
     <p class="indicator-note">O resultado de cada indicador considera o percentual da meta atingida e seu peso na pontuação total, limitado à pontuação máxima do indicador.</p>`;
 }
 
+function dadosProjecaoParcial(dados) {
+  const periodo = periodoParcialAtual();
+  if (!periodo.valido) return null;
+  const fatores = [
+    { nome: "Novas Vendas", real: "nvReal", meta: "nvMetaM", tipo: "count" },
+    {
+      nome: "Ticket Médio",
+      real: "tmReal",
+      meta: "tmMeta",
+      tipo: "money",
+      ticket: true,
+    },
+    {
+      nome: "Objetivo de Vendas",
+      real: "ovReal",
+      meta: "ovMetaM",
+      tipo: "money",
+    },
+    { nome: "Positivação", real: "posReal", meta: "posMetaM", tipo: "count" },
+    {
+      nome: "Mix de Produtos",
+      real: "mixReal",
+      meta: "mixMetaM",
+      tipo: "count",
+      unidade: " SKUs",
+    },
+  ];
+  const linhas = fatores.map((item) => {
+    const temRealizado = temValor(dados[item.real]);
+    const realizado = f(dados[item.real]);
+    const projetado = temRealizado
+      ? item.ticket
+        ? realizado
+        : (realizado / periodo.diasDecorridos) * periodo.diasNoMes
+      : null;
+    const meta =
+      temValor(dados[item.meta]) && f(dados[item.meta]) > 0
+        ? f(dados[item.meta])
+        : null;
+    const atingimento =
+      projetado !== null && meta > 0 ? (projetado / meta) * 100 : null;
+    return { ...item, realizado, projetado, meta, atingimento };
+  });
+  const projeto = {
+    ...dados,
+    nvReal: linhas[0].projetado ?? 0,
+    tmReal: linhas[1].projetado ?? 0,
+    ovReal: linhas[2].projetado ?? 0,
+    posReal: linhas[3].projetado ?? 0,
+    mixReal: linhas[4].projetado ?? 0,
+  };
+  return {
+    linhas,
+    performance: performanceCalculada(projeto, {
+      nv: dados.nvMetaM,
+      ov: dados.ovMetaM,
+      pos: dados.posMetaM,
+      mix: dados.mixMetaM,
+    }),
+    periodo,
+  };
+}
+function valorProjecao(valor, tipo) {
+  if (valor === null || valor === undefined) return "—";
+  return tipo === "count"
+    ? valor.toLocaleString("pt-BR", { maximumFractionDigits: 1 })
+    : `R$ ${fmt(valor)}`;
+}
+function tabelaProjecaoParcial(dados) {
+  const projecao = dadosProjecaoParcial(dados);
+  if (!projecao) return "";
+  const linhas = projecao.linhas
+    .map((item) => {
+      let situacao = "Meta não informada";
+      if (item.projetado === null) situacao = "Informe o realizado";
+      else if (item.meta > 0)
+        situacao =
+          item.atingimento >= 100
+            ? `<span class="status-pill status-ok">No ritmo da meta</span>`
+            : `<span class="status-pill status-fail">Abaixo do ritmo</span>`;
+      const unidade = item.unidade || "";
+      return `<tr><td><strong>${item.nome}</strong></td><td class="tr">${valorProjecao(item.realizado, item.tipo)}${unidade}</td><td class="tr"><strong>${valorProjecao(item.projetado, item.tipo)}${unidade}</strong></td><td class="tr">${item.meta === null ? "—" : `${valorProjecao(item.meta, item.tipo)}${unidade}`}</td><td class="tc2">${item.atingimento === null ? "—" : `${item.atingimento.toFixed(0)}%`}</td><td class="tc2">${situacao}</td></tr>`;
+    })
+    .join("");
+  return `<div class="sec">Projeção para o Fechamento</div>
+    <div class="projection-summary">
+      <div><span>Performance projetada</span><strong>${projecao.performance}%</strong></div>
+      <p>Projeção linear com base em ${projecao.periodo.diasDecorridos} de ${projecao.periodo.diasNoMes} dias corridos. O Ticket Médio mantém o valor realizado atual; os demais indicadores acumulados são extrapolados pelo ritmo observado.</p>
+    </div>
+    <table class="projection-table"><thead><tr><th>Indicador</th><th class="tr">Realizado até agora</th><th class="tr">Projeção no fechamento</th><th class="tr">Meta mensal</th><th class="tc2">Atingimento projetado</th><th class="tc2">Tendência</th></tr></thead><tbody>${linhas}</tbody></table>`;
+}
+function validarValoresRelatorio(dados, fonte) {
+  const campos =
+    fonte === "parcial"
+      ? [
+          ["nvMetaM", "Meta mensal de Novas Vendas"],
+          ["nvReal", "Realizado de Novas Vendas"],
+          ["tmMeta", "Meta de Ticket Médio"],
+          ["tmReal", "Realizado de Ticket Médio"],
+          ["ovMetaM", "Meta mensal de Objetivo de Vendas"],
+          ["ovReal", "Realizado de Objetivo de Vendas"],
+          ["posMetaM", "Meta mensal de Positivação"],
+          ["posReal", "Realizado de Positivação"],
+          ["mixMetaM", "Meta mensal de Mix de Produtos"],
+          ["mixReal", "Realizado de Mix de Produtos"],
+        ]
+      : [
+          ["nvMeta", "Meta de Novas Vendas"],
+          ["nvReal", "Realizado de Novas Vendas"],
+          ["tmMeta", "Meta de Ticket Médio"],
+          ["tmReal", "Realizado de Ticket Médio"],
+          ["ovMeta", "Meta de Objetivo de Vendas"],
+          ["ovReal", "Realizado de Objetivo de Vendas"],
+          ["posMeta", "Meta de Positivação"],
+          ["posReal", "Realizado de Positivação"],
+          ["mixMeta", "Meta de Mix de Produtos"],
+          ["mixReal", "Realizado de Mix de Produtos"],
+        ];
+  for (const dadosPessoa of dados) {
+    if (!dadosPessoa.nome || !dadosPessoa.nome.trim()) continue;
+    for (const [campo, rotulo] of campos) {
+      const valor = dadosPessoa[campo];
+      if (!temValor(valor)) continue;
+      const numero = Number(String(valor).replace(",", "."));
+      if (!Number.isFinite(numero) || numero < 0) {
+        alert(`${rotulo} de ${dadosPessoa.nome} deve ser um número igual ou maior que zero.`);
+        return false;
+      }
+    }
+    const performances =
+      fonte === "parcial"
+        ? [
+            ["perfParcial", dadosPessoa.perfParcialManual],
+            ["perfMensal", dadosPessoa.perfMensalManual],
+          ]
+        : [["perfMensal", dadosPessoa.perfMensalManual]];
+    for (const [campo, manual] of performances) {
+      const valor = dadosPessoa[campo];
+      if (manual && (Number(valor) < 0 || Number(valor) > 100)) {
+        alert(`A performance manual de ${dadosPessoa.nome} deve estar entre 0 e 100.`);
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
 function relParcial(d) {
-  const periodo = document.getElementById("periodoInput").value,
+  calcParcial(d);
+  const periodo = rotuloPeriodoParcial(),
     mes = rotuloMes(document.getElementById("mesInput").value);
   const pp = f(d.perfParcial),
     pm = f(d.perfMensal);
@@ -172,22 +320,14 @@ function relParcial(d) {
   const mixPct =
     f(d.mixMetaP) > 0 ? Math.min((f(d.mixReal) / f(d.mixMetaP)) * 100, 100) : 0;
   const tmPct = f(d.tmPct);
-  const tot =
-    Math.round(
-      (f(d.nvRes) +
-        f(d.ovRes) +
-        f(d.posRes) +
-        f(d.mixRes) +
-        (tmPct >= 100 ? 10 : tmPct / 10)) *
-        100,
-    ) / 100;
+  const tot = resultadoPonderado(d, "parcial");
   return `<div class="rel">
     <div class="hd"><div class="hd-left">${marcaRelatorioHTML()}<h1>Relatório Individual de Desempenho</h1><h2>${d.nome} · ${mes}</h2></div><div class="hd-right"><strong>Referência: ${periodo}</strong> <!-- <div class="rank-pill">🏆 ${d.ranking}º lugar no ranking</div> --> </div></div>
     <div class="sec">Resumo do Desempenho</div>
     <div class="top-cards">
       <!--<div class="tc tc-azul"><div class="lbl">Posição</div><div class="val c-azul">${d.ranking}º</div><div class="sub">ranking</div></div> -->
-      <div class="tc tc-kpi ${ppTc}"><div class="lbl">Perf. Parcial</div><div class="val ${ppCls}">${pp}%</div><div class="sub">${periodo}</div></div>
-      <div class="tc tc-kpi ${pmTc}"><div class="lbl">Perf. Mensal</div><div class="val ${pmCls}">${pm}%</div><div class="sub">${mes}</div></div>
+      <div class="tc tc-kpi ${ppTc}"><div class="lbl">Perf. Parcial</div><div class="val ${ppCls}">${pp}%</div><div class="sub">${d.perfParcialManual ? "Ajuste manual" : "Calculada pelos indicadores"} · ${periodo}</div></div>
+      <div class="tc tc-kpi ${pmTc}"><div class="lbl">Perf. Mensal</div><div class="val ${pmCls}">${pm}%</div><div class="sub">${d.perfMensalManual ? "Ajuste manual" : "Calculada pelos indicadores"} · ${mes}</div></div>
       <div class="tc tc-kpi tc-kpi-score"><div class="lbl">Resultado ponderado</div><div class="val">${tot}</div><div class="sub">de 100 pts</div></div>
     </div>
     <div class="sec">Indicadores — Parcial</div>
@@ -202,6 +342,7 @@ function relParcial(d) {
       </tbody>
       <tfoot><tr><td colspan="6"><strong>Resultado Total</strong></td><td class="tc2"><strong>${tot} pts</strong></td></tr></tfoot>
     </table>
+    ${tabelaProjecaoParcial(d)}
     <div class="sec">Comparativo — Parcial vs Meta Mensal</div>
     <div class="comp-grid">
       <div class="comp-card"><div class="comp-title">📅 Parcial</div>
@@ -231,8 +372,9 @@ function relParcial(d) {
 
 /* ============ RELATÓRIO FECHAMENTO ============ */
 function relFechamento(d) {
-  const periodo = document.getElementById("periodoInput").value,
-    mes = rotuloMes(document.getElementById("mesInput").value);
+  calcFechamento(d);
+  const mes = rotuloMes(document.getElementById("mesInput").value);
+  const periodo = `${mes} completo`;
   const pm = f(d.perfMensal);
   const [pmCls, pmLbl, pmTc] = perfClass(pm);
   const nvOk = f(d.nvReal) >= f(d.nvMeta),
@@ -293,12 +435,12 @@ function relFechamento(d) {
     <div class="top-cards">
       
       <!-- <div class="tc tc-azul"><div class="lbl">Posição</div><div class="val c-azul">${d.ranking}º</div><div class="sub">ranking</div></div> -->
-      <div class="tc tc-kpi ${pmTc}"><div class="lbl">Performance Final</div><div class="val ${pmCls}">${pm}%</div><div class="sub">${mes}</div></div>
+      <div class="tc tc-kpi ${pmTc}"><div class="lbl">Performance Final</div><div class="val ${pmCls}">${pm}%</div><div class="sub">${d.perfMensalManual ? "Ajuste manual" : "Calculada pelos indicadores"} · ${mes}</div></div>
       <div class="tc tc-kpi tc-kpi-score"><div class="lbl">Resultado ponderado</div><div class="val">${tot}</div><div class="sub">de 100 pts</div></div>
       <div class="tc tc-kpi tc-kpi-target ${bat === 5 ? "tc-verde" : bat === 0 ? "tc-baixa" : "tc-media"}"><div class="lbl">Metas Batidas</div><div class="val ${bat === 5 ? "c-verde" : bat === 0 ? "c-baixa" : "c-media"}">${bat}/5</div><div class="sub">indicadores</div></div>
     </div>
     <div class="sec">Performance Final</div>
-    <div class="perf-row"><div class="perf-card ${pmTc}" style="grid-column:1/-1"><div class="p-lbl ${pmCls}">Performance Mensal — Fechamento</div><div class="p-num ${pmCls}">${pm}%</div><div class="p-status ${pmCls}">● ${pmLbl}</div><div class="p-ref">${mes} (mês encerrado)</div></div></div>
+    <div class="perf-row"><div class="perf-card ${pmTc}" style="grid-column:1/-1"><div class="p-lbl ${pmCls}">Performance Mensal — Fechamento</div><div class="p-num ${pmCls}">${pm}%</div><div class="p-status ${pmCls}">● ${pmLbl}</div><div class="p-ref">${d.perfMensalManual ? "Ajuste manual" : "Calculada pelos indicadores"} · ${mes} (mês encerrado)</div></div></div>
     <div class="sec">Indicadores — Resultado Final</div>
     <table>
       <thead><tr><th>Indicador</th><th class="tr">Meta</th><th class="tr">Realizado</th><th class="tc2">Status</th><th class="tc2">Peso</th><th class="tc2">Resultado</th></tr></thead>
@@ -332,12 +474,17 @@ function gerarRelatorio(d) {
 /* ============ GERAR / VISUALIZAR ============ */
 function gerarTodos() {
   if (modo === "dashboard") return;
+  if (modo === "parcial" && !validarPeriodoParcialUI()) return;
   const dados = modo === "parcial" ? dadosParcial : dadosFechamento;
   const validos = dados.filter((d) => d.nome && d.nome.trim());
   if (!validos.length) {
     alert("Adicione ao menos um representante com nome!");
     return;
   }
+  if (!validarValoresRelatorio(validos, modo)) return;
+  validos.forEach((d) =>
+    modo === "parcial" ? calcParcial(d) : calcFechamento(d),
+  );
   const list = document.getElementById("repList");
   list.innerHTML = "";
   validos.forEach((d, i) => {
@@ -381,6 +528,7 @@ function gerarTodos() {
 
 function verRel(i) {
   const dados = modo === "parcial" ? dadosParcial : dadosFechamento;
+  if (modo === "parcial" && !validarPeriodoParcialUI()) return;
   const html = gerarRelatorio(dados[i]);
   relAtual = html;
   relAtualNome = dados[i].nome;
@@ -404,10 +552,11 @@ const brandPrintCSS = `.report-brand{display:flex;align-items:center;gap:9px;mar
 const trendPrintCSS = `.history-change{display:inline-flex;align-items:center;justify-content:center;gap:5px}.history-arrow{font-size:15px;font-weight:900;line-height:1}.history-positive .history-arrow{color:#145f38}.history-negative .history-arrow{color:#a62920}.history-neutral .history-arrow{color:#445367}.history-unavailable .history-arrow{color:#777}`;
 const indicatorPrintCSS = `.indicator-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 11px}.indicator-item{break-inside:avoid;page-break-inside:avoid;border:1px solid #cbd5df;border-left:3px solid #1e8449;border-radius:6px;padding:8px 10px;background:#fff}.indicator-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;color:#17345d;font-size:12px;padding-bottom:5px;margin-bottom:4px;border-bottom:1px solid #e7edf2}.indicator-heading span{color:#1e6640;background:#eaf7ef;border-radius:10px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap}.indicator-item p{font-size:11px;color:#4d5c6b;line-height:1.3;margin-top:3px}.indicator-item p strong{color:#34495e}.indicator-note{font-size:10px;color:#536273;line-height:1.35;margin-top:7px}`;
 const reportThemeCSS = `.rel{font-family:'Aptos','Segoe UI Variable','Segoe UI',Arial,sans-serif;color:#3f3f3f;line-height:1.5;background:#fefdf4;-webkit-print-color-adjust:exact;print-color-adjust:exact}.rel .hd{border-bottom-color:#f8a815}.report-brand,.rel .hd-left h1{color:#83171b}.rel .hd-left h2{color:#696969}.rel .hd-right{color:#696969}.rel .hd-right strong{color:#3f3f3f}.rel .sec{color:#83171b;border-left-color:#f8a815;letter-spacing:.8px}.rel .tc-kpi{border-top-color:#f8a815}.rel .tc-kpi-score{background:#83171b;border-color:#83171b;border-top-color:#f8a815}.rel .tc-kpi-score .lbl,.rel .tc-kpi-score .sub{color:#fefdf4}.rel .tc-kpi .lbl{color:#3f3f3f}.rel .tc-kpi .sub{color:#696969}.rel .tc-verde{background:#f5e9e4;border-color:#d7b5b2}.rel .tc-media{background:#fff4d9;border-color:#f8a815}.rel .tc-baixa{background:#f8e7e6;border-color:#c11f1f}.rel .c-azul{color:#83171b}.rel .c-verde{color:#83171b}.rel .c-media{color:#8a5a00}.rel .c-baixa{color:#c11f1f}.rel thead tr{background:#3f3f3f}.rel tbody tr:nth-child(even){background:#f7f5eb}.rel tbody td{border-bottom-color:#e8e3d6}.rel tfoot td{background:#f3eedc;border-top-color:#f8a815}.rel .b-green{background:#83171b}.rel .b-orange{background:#b87800}.rel .b-red{background:#c11f1f}.rel .bg-g{background:linear-gradient(90deg,#83171b,#c11f1f)}.rel .bg-o{background:linear-gradient(90deg,#d48b00,#f8a815)}.rel .bg-r{background:linear-gradient(90deg,#83171b,#c11f1f)}.rel .comp-card{border-color:#e5ddca;background:#fefdf4}.rel .comp-title,.history-heading strong{color:#83171b}.history-comparison{border-color:#e5ddca;border-top-color:#f8a815;background:#fefdf4}.history-comparison thead th{background:#f3eedc;color:#3f3f3f}.history-comparison thead .history-current-head{background:#83171b}.history-comparison .history-current-cell{background:#fff4d9;color:#83171b}.history-comparison .history-result-row td{border-top-color:#e8d49f;background:#fff4d9}.history-positive{color:#83171b;background:#f5e9e4}.history-negative{color:#a21919;background:#f8e7e6}.history-neutral,.history-unavailable{color:#696969;background:#f1efe7}.rel .prior-box{background:#f8f6ed;border-color:#e5ddca}.rel .d-g{background:#83171b}.rel .d-o{background:#f8a815}.rel .d-r{background:#c11f1f}.rel .resumo-card.ok{background:#f5e9e4;border-color:#d7b5b2}.rel .resumo-card.fail{background:#f8e7e6;border-color:#c11f1f}.rel .resumo-card.ok .rc-title{color:#83171b}.rel .resumo-card.fail .rc-title{color:#a21919}.rel .indicator-item{border-color:#e5ddca;border-left-color:#f8a815;box-shadow:0 2px 6px rgba(63,63,63,.08);background:#fefdf4}.rel .indicator-heading{color:#83171b;border-bottom-color:#e8e3d6}.rel .indicator-heading span{color:#83171b;background:#fff4d9}.rel .indicator-item p,.rel .indicator-note{color:#696969}.rel .indicator-item p strong{color:#3f3f3f}.rel .status-ok{background:#f5e9e4;color:#83171b}.rel .status-fail{background:#f8e7e6;color:#c11f1f}.rel .ft{border-top-color:#e5ddca;color:#696969}`;
+const projectionPrintCSS = `.projection-summary{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:14px;padding:14px 16px;margin-bottom:10px;border:1px solid #f8a815;border-left:4px solid #f8a815;border-radius:9px;background:#fff4d9;break-inside:avoid;page-break-inside:avoid}.projection-summary div{display:flex;flex-direction:column;gap:3px;color:#696969;font-size:10px;text-transform:uppercase;font-weight:700}.projection-summary strong{color:#83171b;font-size:25px;line-height:1.1}.projection-summary p{color:#3f3f3f;font-size:11px;line-height:1.45}.projection-table{margin-bottom:8px}.projection-table th{white-space:normal}`;
 function printHTML(html, nome) {
   const win = window.open("", "_blank");
   win.document.write(
-    `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório Individual - ${nome}</title><style>${printCSS}${historyPrintCSS}${brandPrintCSS}${comparisonPrintCSS}${trendPrintCSS}${indicatorPrintCSS}${reportThemeCSS}</style></head><body>${html}</body></html>`,
+    `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório Individual - ${nome}</title><style>${printCSS}${historyPrintCSS}${brandPrintCSS}${comparisonPrintCSS}${trendPrintCSS}${indicatorPrintCSS}${reportThemeCSS}${projectionPrintCSS}</style></head><body>${html}</body></html>`,
   );
   win.document.close();
   setTimeout(() => {
@@ -419,10 +568,12 @@ function imprimirAtual() {
   if (relAtual) printHTML(relAtual, relAtualNome || "Relatorio");
 }
 function imprimirRel(i) {
+  if (modo === "parcial" && !validarPeriodoParcialUI()) return;
   const d = (modo === "parcial" ? dadosParcial : dadosFechamento)[i];
   printHTML(gerarRelatorio(d), d.nome);
 }
 function imprimirTodos() {
+  if (modo === "parcial" && !validarPeriodoParcialUI()) return;
   const dados = modo === "parcial" ? dadosParcial : dadosFechamento;
   let h = "";
   dados
@@ -448,7 +599,7 @@ async function baixarZip() {
       const nome = `Relatório Individual - ${d.nome.replace(/[\/\\:*?"<>|]/g, "_")}`;
       zip.file(
         `${nome}.html`,
-        `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${nome}</title><style>${printCSS}${historyPrintCSS}${brandPrintCSS}${comparisonPrintCSS}${trendPrintCSS}${indicatorPrintCSS}${reportThemeCSS}</style></head><body>${relFechamento(d)}</body></html>`,
+        `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${nome}</title><style>${printCSS}${historyPrintCSS}${brandPrintCSS}${comparisonPrintCSS}${trendPrintCSS}${indicatorPrintCSS}${reportThemeCSS}${projectionPrintCSS}</style></head><body>${relFechamento(d)}</body></html>`,
       );
     });
   const blob = await zip.generateAsync({ type: "blob" });

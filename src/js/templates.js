@@ -18,14 +18,10 @@ function salvarComoTemplate() {
   const tpl = { id: Date.now(), nome, modo: editModo, metas: {} };
   if (editModo === "parcial") {
     tpl.metas = {
-      nvMetaP: gv("e_nvMetaP"),
       nvMetaM: gv("e_nvMetaM"),
       tmMeta: gv("e_tmMeta"),
-      ovMetaP: gv("e_ovMetaP"),
       ovMetaM: gv("e_ovMetaM"),
-      posMetaP: gv("e_posMetaP"),
       posMetaM: gv("e_posMetaM"),
-      mixMetaP: gv("e_mixMetaP"),
       mixMetaM: gv("e_mixMetaM"),
     };
   } else {

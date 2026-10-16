@@ -3,13 +3,13 @@ function downloadModelo() {
   let h, ex;
   if (modo === "parcial") {
     h =
-      "Nome,Ranking,Perf_Parcial_%,Perf_Mensal_%,NV_MetaP,NV_MetaM,NV_Real,TM_Meta,TM_Real,OV_MetaP,OV_MetaM,OV_Real,POS_MetaP,POS_MetaM,POS_Real,MIX_MetaP,MIX_MetaM,MIX_Real";
+      "Nome,Ranking,NV_MetaM,NV_Real,TM_Meta,TM_Real,OV_MetaM,OV_Real,POS_MetaM,POS_Real,MIX_MetaM,MIX_Real";
     ex =
-      "Carlos Martins / RP,13,77,41,1.43,3,0,3000,2094.53,16666.67,35000,12567.16,5.71,12,6,60,125,64";
+      "Carlos Martins / RP,13,3,0,3000,2094.53,35000,12567.16,12,6,125,64";
   } else {
     h =
-      "Nome,Ranking,Perf_Mensal_%,NV_Meta,NV_Real,TM_Meta,TM_Real,OV_Meta,OV_Real,POS_Meta,POS_Real,MIX_Meta,MIX_Real";
-    ex = "Carlos Martins / RP,13,41,3,1,3000,2200,35000,15000,12,7,125,70";
+      "Nome,Ranking,NV_Meta,NV_Real,TM_Meta,TM_Real,OV_Meta,OV_Real,POS_Meta,POS_Real,MIX_Meta,MIX_Real";
+    ex = "Carlos Martins / RP,13,3,1,3000,2200,35000,15000,12,7,125,70";
   }
   const blob = new Blob([h + "\n" + ex], { type: "text/csv;charset=utf-8;" });
   const a = document.createElement("a");
@@ -20,52 +20,123 @@ function downloadModelo() {
 function importCSV() {
   document.getElementById("csvFile").click();
 }
-function parseReportCSV(texto, modoRelatorio) {
+function parseReportCSV(
+  texto,
+  modoRelatorio,
+  { recalcularPerformance = false } = {},
+) {
   const linhas = texto.split("\n").filter((linha) => linha.trim());
-  linhas.shift();
+  const delimitador = detectarDelimitadorCSV(linhas[0] || "");
+  const cabecalho = parseCSV(linhas.shift() || "", delimitador).map((campo) =>
+    campo.replace(/^\uFEFF/, "").trim().toLocaleLowerCase("pt-BR"),
+  );
+  const coluna = (campos, ...nomes) => {
+    const indice = nomes
+      .map((nome) => cabecalho.indexOf(nome.toLowerCase()))
+      .find((indice) => indice !== -1);
+    return indice === undefined ? undefined : campos[indice];
+  };
+  const modeloParcial =
+    cabecalho.includes("nv_metam") &&
+    !cabecalho.includes("nv_metap") &&
+    !cabecalho.includes("perf_parcial_%") &&
+    !cabecalho.includes("perf_mensal_%");
+  const modeloFechamento =
+    cabecalho.includes("nv_meta") && !cabecalho.includes("perf_mensal_%");
+  const historicoParcial = recalcularPerformance && cabecalho.includes("nv_metam");
   const dados = [];
   linhas.forEach((linha) => {
-    const c = parseCSV(linha);
-    if (!c[0]) return;
+    const c = parseCSV(linha, delimitador);
+    if (!coluna(c, "nome")) return;
     if (modoRelatorio === "parcial") {
-      const d = novoParcial({
-        nome: c[0],
-        ranking: c[1],
-        perfParcial: c[2],
-        perfMensal: c[3],
-        nvMetaP: c[4],
-        nvMetaM: c[5],
-        nvReal: c[6],
-        tmMeta: c[7],
-        tmReal: c[8],
-        ovMetaP: c[9],
-        ovMetaM: c[10],
-        ovReal: c[11],
-        posMetaP: c[12],
-        posMetaM: c[13],
-        posReal: c[14],
-        mixMetaP: c[15],
-        mixMetaM: c[16],
-        mixReal: c[17],
-      });
+      const d = novoParcial(
+        modeloParcial
+          ? {
+              nome: coluna(c, "nome"),
+              ranking: coluna(c, "ranking"),
+              nvMetaM: coluna(c, "nv_metam"),
+              nvReal: coluna(c, "nv_real"),
+              tmMeta: coluna(c, "tm_meta"),
+              tmReal: coluna(c, "tm_real"),
+              ovMetaM: coluna(c, "ov_metam"),
+              ovReal: coluna(c, "ov_real"),
+              posMetaM: coluna(c, "pos_metam"),
+              posReal: coluna(c, "pos_real"),
+              mixMetaM: coluna(c, "mix_metam"),
+              mixReal: coluna(c, "mix_real"),
+            }
+          : {
+              nome: coluna(c, "nome"),
+              ranking: coluna(c, "ranking"),
+              perfParcial: coluna(c, "perf_parcial_%"),
+              perfParcialManual:
+                coluna(c, "perf_parcial_%") !== undefined &&
+                coluna(c, "perf_parcial_%") !== "",
+              perfMensal: coluna(c, "perf_mensal_%"),
+              perfMensalManual:
+                coluna(c, "perf_mensal_%") !== undefined &&
+                coluna(c, "perf_mensal_%") !== "",
+              nvMetaM: coluna(c, "nv_metam"),
+              nvReal: coluna(c, "nv_real"),
+              tmMeta: coluna(c, "tm_meta"),
+              tmReal: coluna(c, "tm_real"),
+              ovMetaM: coluna(c, "ov_metam"),
+              ovReal: coluna(c, "ov_real"),
+              posMetaM: coluna(c, "pos_metam"),
+              posReal: coluna(c, "pos_real"),
+              mixMetaM: coluna(c, "mix_metam"),
+              mixReal: coluna(c, "mix_real"),
+            },
+      );
       calcParcial(d);
       dados.push(d);
     } else {
-      const d = novoFechamento({
-        nome: c[0],
-        ranking: c[1],
-        perfMensal: c[2],
-        nvMeta: c[3],
-        nvReal: c[4],
-        tmMeta: c[5],
-        tmReal: c[6],
-        ovMeta: c[7],
-        ovReal: c[8],
-        posMeta: c[9],
-        posReal: c[10],
-        mixMeta: c[11],
-        mixReal: c[12],
-      });
+      const d = novoFechamento(
+        modeloFechamento
+          ? {
+              nome: coluna(c, "nome"),
+              ranking: coluna(c, "ranking"),
+              nvMeta: coluna(c, "nv_meta"),
+              nvReal: coluna(c, "nv_real"),
+              tmMeta: coluna(c, "tm_meta"),
+              tmReal: coluna(c, "tm_real"),
+              ovMeta: coluna(c, "ov_meta"),
+              ovReal: coluna(c, "ov_real"),
+              posMeta: coluna(c, "pos_meta"),
+              posReal: coluna(c, "pos_real"),
+              mixMeta: coluna(c, "mix_meta"),
+              mixReal: coluna(c, "mix_real"),
+            }
+          : {
+              nome: coluna(c, "nome"),
+              ranking: coluna(c, "ranking"),
+              perfMensal: recalcularPerformance
+                ? undefined
+                : coluna(c, "perf_mensal_%"),
+              perfMensalManual:
+                !recalcularPerformance &&
+                coluna(c, "perf_mensal_%") !== undefined &&
+                coluna(c, "perf_mensal_%") !== "",
+              nvMeta: historicoParcial
+                ? coluna(c, "nv_meta", "nv_metam")
+                : coluna(c, "nv_meta"),
+              nvReal: coluna(c, "nv_real"),
+              tmMeta: coluna(c, "tm_meta"),
+              tmReal: coluna(c, "tm_real"),
+              ovMeta: historicoParcial
+                ? coluna(c, "ov_meta", "ov_metam")
+                : coluna(c, "ov_meta"),
+              ovReal: coluna(c, "ov_real"),
+              posMeta: historicoParcial
+                ? coluna(c, "pos_meta", "pos_metam")
+                : coluna(c, "pos_meta"),
+              posReal: coluna(c, "pos_real"),
+              mixMeta: historicoParcial
+                ? coluna(c, "mix_meta", "mix_metam")
+                : coluna(c, "mix_meta"),
+              mixReal: coluna(c, "mix_real"),
+            },
+      );
       calcFechamento(d);
       dados.push(d);
     }
@@ -110,7 +181,9 @@ function handleCSVAnterior(e) {
   }
   const r = new FileReader();
   r.onload = (ev) => {
-    dadosMesAnterior = parseReportCSV(ev.target.result, "fechamento");
+    dadosMesAnterior = parseReportCSV(ev.target.result, "fechamento", {
+      recalcularPerformance: true,
+    });
     mesHistorico = mesAnterior;
     atualizarStatusHistorico();
     if (modo === "dashboard") renderDashboard();
@@ -122,10 +195,25 @@ function handleCSVAnterior(e) {
   e.target.value = "";
 }
 function handleMonthChange() {
+  atualizarDatasDoMes();
   atualizarStatusHistorico();
   if (modo === "dashboard") renderDashboard();
 }
-function parseCSV(l) {
+function detectarDelimitadorCSV(linha) {
+  const contagens = [",", ";", "\t"].map((delimitador) => {
+    let dentroDeAspas = false;
+    let quantidade = 0;
+    for (const caractere of linha) {
+      if (caractere === '"') dentroDeAspas = !dentroDeAspas;
+      else if (caractere === delimitador && !dentroDeAspas) quantidade++;
+    }
+    return { delimitador, quantidade };
+  });
+  return contagens.reduce((maior, atual) =>
+    atual.quantidade > maior.quantidade ? atual : maior,
+  ).delimitador;
+}
+function parseCSV(l, delimitador = ",") {
   const r = [];
   let cur = "",
     q = false;
@@ -133,7 +221,7 @@ function parseCSV(l) {
     const c = l[i];
     if (c === '"') {
       q = !q;
-    } else if (c === "," && !q) {
+    } else if (c === delimitador && !q) {
       r.push(cur.trim());
       cur = "";
     } else {

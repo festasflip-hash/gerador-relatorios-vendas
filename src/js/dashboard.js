@@ -43,7 +43,10 @@ function renderDashboard() {
     fonte === "fechamento" ? dadosFechamento : dadosParcial
   ).filter((d) => d.nome && d.nome.trim());
   const mes = rotuloMes(document.getElementById("mesInput").value);
-  const periodo = document.getElementById("periodoInput").value;
+  const periodo =
+    fonte === "parcial"
+      ? rotuloPeriodoParcial()
+      : `${mes} completo`;
   const perfs = dados.map((d) => f(d.perfMensal));
   const alta = perfs.filter((p) => p >= 90).length,
     media = perfs.filter((p) => p >= 50 && p < 90).length,
